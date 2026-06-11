@@ -8,7 +8,6 @@
   <meta name="theme-color" content="#7ec8e3">
   <title>会说话的汤姆猫</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/cat.css">
 </head>
 <body>
 <div id="app">
@@ -37,13 +36,22 @@
 
     <section id="scene-living" class="scene scene-living active">
       <div class="scene-deco window"></div>
-      <div class="cat-area"><div class="cat-slot"></div><div class="fx-layer"></div></div>
+      <div class="scene-deco frame">🐟</div>
+      <div class="scene-deco plant">🪴</div>
+      <div class="cat-area">
+        <div class="rug"></div>
+        <div class="cat-slot"></div>
+        <div class="fx-layer"></div>
+      </div>
       <div class="scene-actions">
         <button id="btn-talk" type="button">🎤 按住说话</button>
       </div>
     </section>
 
     <section id="scene-kitchen" class="scene scene-kitchen">
+      <div class="scene-deco fridge"></div>
+      <div class="scene-deco counter"><span class="counter-items">🍳🫕</span></div>
+      <div class="scene-deco shelf">🫙🧂🍯</div>
       <div class="cat-area"><div class="cat-slot"></div><div class="fx-layer"></div></div>
       <div class="scene-actions">
         <div id="food-tray"></div>
@@ -51,9 +59,12 @@
     </section>
 
     <section id="scene-bathroom" class="scene scene-bathroom">
+      <div class="scene-deco mirror"></div>
+      <div class="scene-deco shower">🚿</div>
       <div class="cat-area">
+        <div class="toilet-back"></div>
         <div class="cat-slot"></div>
-        <div class="tub"></div>
+        <div class="toilet-front"></div>
         <div class="fx-layer"></div>
       </div>
       <div class="scene-actions">
@@ -64,7 +75,12 @@
 
     <section id="scene-bedroom" class="scene scene-bedroom">
       <div class="scene-deco moon">🌙</div>
-      <div class="cat-area"><div class="cat-slot"></div><div class="fx-layer"></div></div>
+      <div class="cat-area">
+        <div class="bed-back"></div>
+        <div class="cat-slot"></div>
+        <div class="bed-front"></div>
+        <div class="fx-layer"></div>
+      </div>
       <div class="scene-actions">
         <button id="btn-lamp" type="button">💡 关灯睡觉</button>
       </div>

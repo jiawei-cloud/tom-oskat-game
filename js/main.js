@@ -31,7 +31,8 @@ function renderHud() {
 
   scenes.updateBadges(s.stats);
   cat.setExpression(state.expression());
-  cat.setDirty((100 - s.stats.hygiene) / 100);
+  // 清洁度低于 60 才开始显示脏污
+  cat.setDirty(Math.max(0, (60 - s.stats.hygiene) / 60));
 }
 
 function tick() {
