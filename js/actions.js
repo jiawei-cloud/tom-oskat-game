@@ -10,7 +10,7 @@ import { FOODS } from './shop.js';
 let busy = false; // 动作进行中(吃饭/洗澡)防止重入
 
 export function init() {
-  // 戳与抚摸
+  // 戳
   cat.handlers.onPoke = () => {
     cat.poke();
     sfx.meow();
@@ -18,11 +18,39 @@ export function init() {
     state.changeStat('mood', 1);
     state.addXp(1);
   };
+
+  // 抚摸
   cat.handlers.onPet = () => {
     floatEmoji('❤️', { x: 35 + Math.random() * 30, y: 25 + Math.random() * 20 });
     sfx.pop();
     state.changeStat('mood', 2);
     state.addXp(1);
+  };
+
+  // 单次打击:踉跄
+  cat.handlers.onHit = () => {
+    sfx.hit();
+    const msgs = ['哎哟!', '你打我!', '痛痛痛!', '喵?!'];
+    speechBubble(msgs[Math.floor(Math.random() * msgs.length)]);
+    state.changeStat('mood', -5);
+  };
+
+  // 4连击:倒地
+  cat.handlers.onKnockdown = () => {
+    sfx.fail();
+    speechBubble('x_x', 800);
+    // 持续漂浮星星
+    const starTimer = setInterval(() => {
+      floatEmoji(['⭐', '💫', '✨'][Math.floor(Math.random() * 3)],
+        { x: 30 + Math.random() * 40, y: 20 + Math.random() * 30, size: 20 + Math.random() * 12 });
+    }, 450);
+    state.changeStat('mood', -15);
+    // 2.4s 后倒地结束,再 0.65s 爬起
+    setTimeout(() => {
+      clearInterval(starTimer);
+      sfx.meow();
+      speechBubble(['哼!', '好吧你赢了!', '喵~~~'][Math.floor(Math.random() * 3)]);
+    }, 3200);
   };
 
   // 厨房食物托盘

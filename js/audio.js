@@ -61,8 +61,13 @@ export const sfx = {
     const notes = [523, 659, 784, 1047];
     notes.forEach((f, i) => tone({ freq: f, dur: 0.16, type: 'square', vol: 0.12, delay: i * 0.11 }));
   },
+  hit() {
+    tone({ freq: 180, to: 80, dur: 0.12, type: 'triangle', vol: 0.3 });
+    tone({ freq: 240, to: 100, dur: 0.08, type: 'square', vol: 0.1, delay: 0.04 });
+  },
   fail() {
-    tone({ freq: 300, to: 140, dur: 0.3, type: 'sawtooth', vol: 0.15 });
+    tone({ freq: 220, to: 80, dur: 0.22, type: 'sawtooth', vol: 0.2 });
+    tone({ freq: 160, to: 60, dur: 0.35, type: 'sawtooth', vol: 0.15, delay: 0.2 });
   },
   yawn() {
     tone({ freq: 360, to: 180, dur: 0.5, type: 'triangle', vol: 0.18 });

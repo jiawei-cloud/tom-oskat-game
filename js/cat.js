@@ -4,7 +4,7 @@
 
 import * as THREE from './lib/three.module.min.js';
 
-export const handlers = { onPoke: null, onPet: null };
+export const handlers = { onPoke: null, onPet: null, onHit: null, onKnockdown: null };
 
 const COLOR = {
   fur: 0x8b93a2,
@@ -31,19 +31,27 @@ let dirtMat, accHat, accBowtie;
 const anim = {
   t: 0,
   blinkAt: 2.5,
-  blinkT: -1,          // >=0 表示眨眼进行中
+  blinkT: -1,
   earKick: 0,
   earSide: 1,
   earAt: 4,
   pokeT: -1,
   jumpT: -1,
-  mouth: 'idle',       // idle / happy / open / sad
-  chewSpeed: 0,        // >0 时嘴巴开合(吃饭/说话)
+  mouth: 'idle',
+  chewSpeed: 0,
   expr: 'happy',
   sleeping: false,
   bathing: false,
   petting: false,
   eyesClosed: false,
+  // 打击系统
+  staggerT: -1,        // 单次打击踉跄进度
+  knockedDown: false,  // 是否倒地
+  knockedDownT: 0,     // 倒地计时
+  gettingUpT: -1,      // 爬起来进度
+  knockSide: 1,        // 倒向哪边
+  hitCount: 0,
+  lastHitTime: 0,
 };
 
 function mat(color, opts = {}) {
@@ -354,16 +362,77 @@ export function el() { return canvas; }
 
 // ---------- 每帧动画 ----------
 
+function easeOut3(p) { return 1 - Math.pow(1 - Math.min(p, 1), 3); }
+
 function frame(dt) {
   anim.t += dt;
   const t = anim.t;
+
+  // 倒地 & 爬起来优先处理 root 旋转,其他动画在倒地期间暂停
+  const knocked = anim.knockedDown || anim.gettingUpT >= 0;
+
+  if (anim.knockedDown) {
+    anim.knockedDownT += dt;
+    const fallP = easeOut3(Math.min(anim.knockedDownT / 0.35, 1));
+    root.rotation.z = fallP * Math.PI * 0.52 * anim.knockSide;
+    root.position.y = -fallP * 0.35;
+    // 倒地 2.4s 后开始爬起
+    if (anim.knockedDownT > 2.4 && anim.gettingUpT < 0) {
+      anim.gettingUpT = 0;
+      anim.knockedDown = false;
+      anim.knockedDownT = 0;
+    }
+  }
+
+  if (anim.gettingUpT >= 0) {
+    anim.gettingUpT += dt;
+    const p = Math.min(anim.gettingUpT / 0.65, 1);
+    // 弹簧回弹:超调一点再回正
+    const spring = easeOut3(p) + Math.sin(p * Math.PI * 2.2) * (1 - p) * 0.18;
+    const remain = 1 - Math.min(spring, 1);
+    root.rotation.z = remain * Math.PI * 0.52 * anim.knockSide;
+    root.position.y = -remain * 0.35;
+    if (p >= 1) {
+      anim.gettingUpT = -1;
+      root.rotation.z = 0;
+      root.position.y = 0;
+      anim.hitCount = 0;
+      anim.eyesClosed = false;
+      setMouth(anim.expr === 'sad' ? 'sad' : 'idle');
+    }
+  }
+
+  if (knocked) {
+    // 倒地期间只做最小动画
+    body.scale.set(1, 1, 1);
+    head.rotation.x = 0.15;
+    head.rotation.z = 0;
+    head.position.y = 2.05;
+    head.scale.set(1, 1, 1);
+    tailGroup.rotation.y = 0;
+    return;
+  }
 
   // 呼吸
   const breathe = anim.sleeping ? Math.sin(t * 1.6) * 0.03 : Math.sin(t * 2.4) * 0.015;
   body.scale.set(1, 1 + breathe, 1);
 
-  // 轻微转体(体现 3D)
+  // 轻微转体
   root.rotation.y = Math.sin(t * 0.45) * 0.1;
+
+  // 踉跄(单次打击)
+  let staggerZ = 0;
+  if (anim.staggerT >= 0) {
+    anim.staggerT += dt;
+    const p = anim.staggerT / 0.55;
+    if (p >= 1) { anim.staggerT = -1; }
+    else {
+      staggerZ = Math.sin(p * Math.PI * 3.5) * (1 - p) * 0.32 * anim.knockSide;
+      root.rotation.z = staggerZ;
+    }
+  } else if (!anim.bathing) {
+    root.rotation.z = 0;
+  }
 
   // 头部
   let headRotX = anim.sleeping ? 0.22 : Math.sin(t * 1.1) * 0.02;
@@ -371,17 +440,16 @@ function frame(dt) {
   let headY = 2.05 + Math.sin(t * 1.3) * 0.015;
   let headScaleY = 1;
 
-  // 戳一下:挤压
   if (anim.pokeT >= 0) {
     anim.pokeT += dt;
     const p = anim.pokeT / 0.4;
     if (p >= 1) anim.pokeT = -1;
-    else headScaleY = 1 - Math.sin(p * Math.PI) * 0.18;
+    else headScaleY = 1 - Math.sin(p * Math.PI) * 0.22;
   }
   head.rotation.x = headRotX;
-  head.rotation.z = headRotZ;
-  head.position.y = headY * headScaleY === 0 ? headY : 2.05 - (1 - headScaleY) * 0.5 + Math.sin(t * 1.3) * 0.015;
-  head.scale.set(1 + (1 - headScaleY) * 0.4, headScaleY, 1 + (1 - headScaleY) * 0.4);
+  head.rotation.z = headRotZ + staggerZ * 0.5;
+  head.position.y = 2.05 - (1 - headScaleY) * 0.5 + Math.sin(t * 1.3) * 0.015;
+  head.scale.set(1 + (1 - headScaleY) * 0.45, headScaleY, 1 + (1 - headScaleY) * 0.45);
 
   // 跳跃
   if (anim.jumpT >= 0) {
@@ -392,7 +460,7 @@ function frame(dt) {
   }
 
   // 洗澡摇摆
-  root.rotation.z = anim.bathing ? Math.sin(t * 5) * 0.06 : 0;
+  if (anim.bathing) root.rotation.z = Math.sin(t * 5) * 0.06;
 
   // 尾巴
   const wagSpeed = anim.sleeping ? 0.6 : anim.expr === 'happy' ? 4.5 : anim.expr === 'sad' ? 1 : 2.5;
@@ -504,6 +572,32 @@ export function poke() {
   anim.pokeT = 0;
 }
 
+export function hit() {
+  if (anim.knockedDown || anim.gettingUpT >= 0) return;
+  const now = Date.now();
+  if (now - anim.lastHitTime > 1800) anim.hitCount = 0;
+  anim.hitCount++;
+  anim.lastHitTime = now;
+  anim.knockSide = anim.hitCount % 2 === 0 ? -1 : 1;
+
+  if (anim.hitCount >= 4) {
+    // 倒地!
+    anim.knockedDown = true;
+    anim.knockedDownT = 0;
+    anim.gettingUpT = -1;
+    anim.eyesClosed = true;
+    setMouth('sad');
+    handlers.onKnockdown?.();
+  } else {
+    // 踉跄
+    anim.staggerT = 0;
+    anim.pokeT = 0;
+    anim.eyesClosed = true;
+    setTimeout(() => { if (!anim.knockedDown) anim.eyesClosed = false; }, 280);
+    handlers.onHit?.();
+  }
+}
+
 export function jump() {
   anim.jumpT = 0;
 }
@@ -522,24 +616,31 @@ export function smile(ms = 1200) {
 function bindPointer() {
   let down = false;
   let moved = 0;
+  let totalDy = 0;
   let lastX = 0, lastY = 0;
+  let downX = 0, downY = 0, downTime = 0;
   let petTick = 0;
 
   canvas.addEventListener('pointerdown', (e) => {
     if (anim.sleeping) return;
     down = true;
     moved = 0;
-    lastX = e.clientX;
-    lastY = e.clientY;
+    totalDy = 0;
+    lastX = downX = e.clientX;
+    lastY = downY = e.clientY;
+    downTime = Date.now();
     canvas.setPointerCapture?.(e.pointerId);
   });
 
   canvas.addEventListener('pointermove', (e) => {
     if (!down) return;
-    moved += Math.abs(e.clientX - lastX) + Math.abs(e.clientY - lastY);
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    totalDy += dy;
     lastX = e.clientX;
     lastY = e.clientY;
-    if (moved > 24) {
+    if (moved > 28 && !anim.knockedDown && anim.gettingUpT < 0) {
       if (!anim.petting) {
         anim.petting = true;
         setMouth('happy');
@@ -552,14 +653,27 @@ function bindPointer() {
     }
   });
 
-  const end = () => {
+  const end = (e) => {
     if (!down) return;
     const wasPetting = anim.petting;
     down = false;
+
     if (wasPetting) {
       anim.petting = false;
       setMouth(anim.expr === 'sad' ? 'sad' : 'idle');
-    } else if (moved <= 24) {
+      return;
+    }
+
+    // 倒地/爬起期间点击无效
+    if (anim.knockedDown || anim.gettingUpT >= 0) return;
+
+    const elapsed = Date.now() - downTime;
+    // 快速向下滑动 → 打击!条件:位移>28px、向下、速度>0.35px/ms
+    if (moved > 28 && totalDy > 18 && elapsed < 400 && totalDy / elapsed > 0.35) {
+      hit();
+    } else if (moved <= 22) {
+      // 轻点
+      if (anim.sleeping) return;
       handlers.onPoke?.();
     }
   };
