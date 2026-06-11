@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#7ec8e3">
+  <title>会说话的汤姆猫</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- 顶部 HUD -->
+  <header id="hud">
+    <div id="level-box">
+      <span id="level-label">Lv.1</span>
+      <div id="xp-bar"><div id="xp-fill"></div></div>
+    </div>
+    <button id="stats-toggle" type="button">📊</button>
+    <div id="coin-box">🪙 <span id="coin-label">0</span></div>
+  </header>
+
+  <!-- 状态面板 -->
+  <div id="stats-panel" class="hidden">
+    <div class="stat-row" data-stat="hunger"><span class="stat-icon">🍗</span><span class="stat-name">饥饿</span><div class="stat-bar"><div class="stat-fill"></div></div></div>
+    <div class="stat-row" data-stat="energy"><span class="stat-icon">⚡️</span><span class="stat-name">能量</span><div class="stat-bar"><div class="stat-fill"></div></div></div>
+    <div class="stat-row" data-stat="hygiene"><span class="stat-icon">🧼</span><span class="stat-name">清洁</span><div class="stat-bar"><div class="stat-fill"></div></div></div>
+    <div class="stat-row" data-stat="mood"><span class="stat-icon">😊</span><span class="stat-name">心情</span><div class="stat-bar"><div class="stat-fill"></div></div></div>
+    <div class="stat-row" data-stat="bladder"><span class="stat-icon">🚽</span><span class="stat-name">如厕</span><div class="stat-bar"><div class="stat-fill"></div></div></div>
+  </div>
+
+  <!-- 场景 -->
+  <main id="scenes">
+
+    <section id="scene-living" class="scene scene-living active">
+      <div class="scene-deco window"></div>
+      <div class="scene-deco frame">🐟</div>
+      <div class="scene-deco plant">🪴</div>
+      <div class="cat-area">
+        <div class="rug"></div>
+        <div class="cat-slot"></div>
+        <div class="fx-layer"></div>
+      </div>
+      <div class="scene-actions">
+        <button id="btn-talk" type="button">🎤 按住说话</button>
+      </div>
+    </section>
+
+    <section id="scene-kitchen" class="scene scene-kitchen">
+      <div class="scene-deco fridge"></div>
+      <div class="scene-deco counter"><span class="counter-items">🍳🫕</span></div>
+      <div class="scene-deco shelf">🫙🧂🍯</div>
+      <div class="cat-area"><div class="cat-slot"></div><div class="fx-layer"></div></div>
+      <div class="scene-actions">
+        <div id="food-tray"></div>
+      </div>
+    </section>
+
+    <section id="scene-bathroom" class="scene scene-bathroom">
+      <div class="scene-deco mirror"></div>
+      <div class="scene-deco shower">🚿</div>
+      <div class="cat-area">
+        <div class="toilet-back"></div>
+        <div class="cat-slot"></div>
+        <div class="toilet-front"></div>
+        <div class="fx-layer"></div>
+      </div>
+      <div class="scene-actions">
+        <button id="btn-bath" type="button">🧼 洗澡</button>
+        <button id="btn-toilet" type="button">🚽 上厕所</button>
+      </div>
+    </section>
+
+    <section id="scene-bedroom" class="scene scene-bedroom">
+      <div class="scene-deco moon">🌙</div>
+      <div class="cat-area">
+        <div class="bed-back"></div>
+        <div class="cat-slot"></div>
+        <div class="bed-front"></div>
+        <div class="fx-layer"></div>
+      </div>
+      <div class="scene-actions">
+        <button id="btn-lamp" type="button">💡 关灯睡觉</button>
+      </div>
+      <div id="dark-overlay"></div>
+    </section>
+
+    <section id="scene-shop" class="scene scene-shop">
+      <h2 class="scene-title">🛒 商店</h2>
+      <div id="shop-grid"></div>
+    </section>
+
+    <section id="scene-game" class="scene scene-game">
+      <div id="game-wrap">
+        <canvas id="game-canvas"></canvas>
+        <div id="game-hud"><span id="game-score">得分: 0</span><span id="game-lives">❤️❤️❤️</span></div>
+        <div id="game-overlay">
+          <div id="game-overlay-box">
+            <h2 id="game-overlay-title">🍎 接食物</h2>
+            <p id="game-overlay-text">左右拖动篮子,接住掉落的食物!<br>小心炸弹💣,漏接 3 次游戏结束。</p>
+            <button id="btn-game-start" type="button">开始游戏</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部导航 -->
+  <nav id="nav">
+    <button type="button" data-scene="living"><span class="nav-icon">🏠</span><span class="nav-text">客厅</span><span class="badge"></span></button>
+    <button type="button" data-scene="kitchen"><span class="nav-icon">🍽️</span><span class="nav-text">厨房</span><span class="badge"></span></button>
+    <button type="button" data-scene="bathroom"><span class="nav-icon">🛁</span><span class="nav-text">浴室</span><span class="badge"></span></button>
+    <button type="button" data-scene="bedroom"><span class="nav-icon">🛏️</span><span class="nav-text">卧室</span><span class="badge"></span></button>
+    <button type="button" data-scene="game"><span class="nav-icon">🎮</span><span class="nav-text">游戏</span><span class="badge"></span></button>
+    <button type="button" data-scene="shop"><span class="nav-icon">🛒</span><span class="nav-text">商店</span><span class="badge"></span></button>
+  </nav>
+
+  <div id="toast"></div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

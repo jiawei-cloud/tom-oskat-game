@@ -1,0 +1,28 @@
+<!DOCTYPE html><html><body style="background:#7ec8e3;margin:0">
+<canvas id="c" width="400" height="500"></canvas>
+<script type="module">
+import * as THREE from '/js/lib/three.module.min.js';
+import { GLTFLoader } from '/js/lib/GLTFLoader.js';
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'),alpha:true,antialias:true});
+renderer.setSize(400,500);
+renderer.setPixelRatio(2);
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(40,400/500,0.01,100);
+cam.position.set(0,1.2,3.5); cam.lookAt(0,0.6,0);
+scene.add(new THREE.HemisphereLight(0xffffff,0x888888,2.5));
+const sun = new THREE.DirectionalLight(0xffffff,2.5); sun.position.set(2,4,3); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xbcd4ff,0.8); fill.position.set(-2,1,2); scene.add(fill);
+const loader = new GLTFLoader();
+loader.load('/test_cat.glb', gltf => {
+  const m = gltf.scene;
+  const box = new THREE.Box3().setFromObject(m);
+  const c = box.getCenter(new THREE.Vector3());
+  const s = box.getSize(new THREE.Vector3());
+  m.scale.setScalar(1.8/Math.max(s.x,s.y,s.z));
+  m.position.sub(c.multiplyScalar(1.8/Math.max(s.x,s.y,s.z)));
+  m.position.y += 0.05;
+  scene.add(m);
+  renderer.render(scene,cam);
+  window.__loaded = true;
+}, undefined, e => { window.__err = e.message; });
+</script></body></html>
