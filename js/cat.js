@@ -53,9 +53,10 @@ function playOnce(name, cb) {
 }
 
 function idleAnim() {
-  if (S.sleeping)     fadeTo('static', 0.4);
-  else if (S.eating)  fadeTo('eat',    0.15);
-  else                fadeTo('idle',   0.25);
+  if (S.knockedDown || S.gettingUpT >= 0) return;
+  if (S.sleeping)    fadeTo('static', 0.4);
+  else if (S.eating) fadeTo('eat',    0.15);
+  else               fadeTo('idle',   0.25);
 }
 
 // ── scene setup ────────────────────────────────────────────────────
@@ -292,7 +293,7 @@ export function poke() { S.pokeT = 0; }
 export function hit() {
   if (S.knockedDown || S.gettingUpT >= 0) return;
   const now = Date.now();
-  if (now - S.lastHitTime > 1800) S.hitCount = 0;
+  if (now - S.lastHitTime > 2500) S.hitCount = 0;  // 2.5s window
   S.hitCount++;
   S.lastHitTime = now;
   S.knockSide = S.hitCount % 2 === 0 ? -1 : 1;
@@ -321,41 +322,59 @@ export function smile(ms = 1200) {
 // ── pointer events ─────────────────────────────────────────────────
 
 function bindPointer() {
-  let dn = false, moved = 0, dy = 0, lx = 0, ly = 0, t0 = 0, petT = 0;
+  let dn = false, moved = 0, netDy = 0, lx = 0, ly = 0, sx = 0, sy = 0, t0 = 0, petT = 0;
 
   canvas.addEventListener('pointerdown', e => {
     if (S.sleeping) return;
-    dn = true; moved = 0; dy = 0;
-    lx = e.clientX; ly = e.clientY; t0 = Date.now();
+    dn = true; moved = 0; netDy = 0;
+    sx = lx = e.clientX; sy = ly = e.clientY; t0 = Date.now();
     canvas.setPointerCapture?.(e.pointerId);
   });
 
   canvas.addEventListener('pointermove', e => {
     if (!dn) return;
     const ddx = e.clientX - lx, ddy = e.clientY - ly;
-    moved += Math.abs(ddx) + Math.abs(ddy); dy += ddy;
+    moved += Math.abs(ddx) + Math.abs(ddy); netDy += ddy;
     lx = e.clientX; ly = e.clientY;
-    if (moved > 28 && !S.knockedDown && S.gettingUpT < 0) {
+
+    // Don't switch to petting mode if this looks like a downward hit swipe
+    const el = Date.now() - t0;
+    const looksLikeHit = netDy > 18 && el > 0 && netDy / el > 0.20;
+
+    if (moved > 28 && !looksLikeHit && !S.knockedDown && S.gettingUpT < 0) {
       if (!S.petting) { S.petting = true; fadeTo('gesture-positive'); }
       const now = Date.now();
       if (now - petT > 600) { petT = now; handlers.onPet?.(); }
     }
   });
 
-  const up = () => {
+  const up = (e) => {
     if (!dn) return;
-    const wasPet = S.petting; dn = false;
+    dn = false;
+
+    // Use final touch position (more reliable for fast swipes where pointermove may be sparse)
+    const finalDy = e.clientY - sy;
+    const finalDist = Math.abs(e.clientX - sx) + Math.abs(finalDy);
+    const el = Date.now() - t0;
+    const isHit = finalDy > 20 && finalDist > 22 && el > 0 && el < 500 && finalDy / el > 0.20;
+
+    if (isHit && !S.knockedDown && S.gettingUpT < 0) {
+      S.petting = false;
+      hit();
+      return;
+    }
+
+    const wasPet = S.petting;
     if (wasPet) {
       S.petting = false;
       setTimeout(() => { if (!S.eating && !S.sleeping) idleAnim(); }, 500);
       return;
     }
+
     if (S.knockedDown || S.gettingUpT >= 0) return;
-    const el = Date.now() - t0;
-    if (moved > 28 && dy > 18 && el < 400 && dy / el > 0.35) hit();
-    else if (moved <= 22) { poke(); handlers.onPoke?.(); }
+    if (moved <= 22 && finalDist <= 22) { poke(); handlers.onPoke?.(); }
   };
 
   canvas.addEventListener('pointerup', up);
-  canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('pointercancel', () => { dn = false; S.petting = false; });
 }
